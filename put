@@ -1,0 +1,74 @@
+#!/bin/sh
+
+#
+# scripts/shell/ssh-utils/ - SSH related shell utils
+#
+# put/get - puts file to destination server or
+#           gets file from destination server
+# ____________________________________________________________
+#
+# Developed by Lubomir Host <rajo@platon.sk>
+# Copyright (c) 2002-2006 Platon Group, http://platon.sk/
+# All rights reserved.
+#
+# See README file for more information about this software.
+# See COPYING file for license information.
+#
+# Download the latest version from
+# https://github.com/lhost/scripts-ssh
+#
+
+#
+# $Platon: scripts/shell/ssh-utils/put,v 1.10 2006-09-08 06:50:10 nepto Exp $
+#
+
+default_user="${user:=$USER}";
+user='';
+machine='';
+echo_bin=`which echo`
+
+ssh_put()
+{
+	tar cf - "$@" | ssh -l "$user" "$machine" -e none tar xvf -;
+}
+
+ssh_get()
+{
+	ssh -l "$user" "$machine" -e none tar cf - "$@" | tar xvf -;
+}
+
+if [ "$#" -lt 1 ]; then
+	"$echo_bin"
+	"$echo_bin" "Usage: $0 <files>";
+	"$echo_bin"
+	exit 1;
+fi
+
+"$echo_bin" "Default username is '$default_user', press ENTER to use this."; 
+"$echo_bin" -en "Enter username: ";
+read user;
+
+if [ -z "$user" ]; then
+	"$echo_bin" "No username specified, using default: $default_user";
+	user="$default_user";
+fi
+
+"$echo_bin" -en "Enter hostname: ";
+read machine;
+
+if [ -z "$machine" ]; then
+	"$echo_bin" "No hostname specified.";
+	exit 1;
+fi
+
+# if called with name 'put' --> try ssh_put()
+#                     'get' --> try ssh_get()
+case $0  in
+	*put) ssh_put "$@";
+	;;
+	*get) ssh_get "$@";
+	;;
+esac
+
+# vim: ft=sh
+
