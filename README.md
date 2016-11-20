@@ -2,7 +2,7 @@
 My extensions to ssh - use SSH as transport layer in many ways
 
 ### get
-Download files from external server
+Download files from external server. `get` is just symlink to `put`
 
 ### put
 Upload files to external server
