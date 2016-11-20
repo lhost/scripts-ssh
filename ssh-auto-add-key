@@ -1,0 +1,97 @@
+#!/bin/sh
+
+# Developed by Lubomir Host 'rajo' <rajo AT platon.sk>
+# Licensed under terms of GNU General Public License.
+# All rights reserved.
+
+#
+# mkdir ~/bin
+# cp /tmp/ssh-auto-add-key ~/bin/ssh-auto-add-key
+# cd ~/bin
+# ln -s ssh-auto-add-key ssh
+#
+
+DEBUG=0
+#DEBUG=1
+
+if [ $DEBUG -gt 0 ]; then
+	DEBUG="echo "
+	SSH_FLAGS="-v"
+else
+	DEBUG=": "
+fi
+
+
+full_bin="`which $0`"
+whichs="`which -a which`"
+keychain_bin="`which keychain`"
+#keychain_bin=$HOME/bin/keychain
+realpath_bin="`which realpath`"
+
+$DEBUG full_bin="$full_bin"
+$DEBUG whichs="$whichs"
+$DEBUG keychain_bin="$keychain_bin"
+$DEBUG realpath_bin="$realpath_bin"
+
+if [ "${0##*/}" = "ssh-auto-add-key" ]
+then
+  echo 'ssh-auto-add-key: This script should not be run like this, create symlink "ssh" instead' 1>&2
+  echo '' 1>&2
+  echo "cd ${PATH%%:*} && ln -s $full_bin ssh" 1>&2
+  echo '' 1>&2
+  exit 1
+fi
+
+if [ -z "$keychain_bin" ] || [ ! -x $keychain_bin ]; then
+	echo "keychain tool not found on your system" 1>&2
+	echo "keychain is required by ssh-auto-add-key" 1>&2
+	exit 1
+fi
+
+if [ -z "$realpath_bin" ] || [ ! -x $realpath_bin ]; then
+	echo "Warning: realpath tool not found on your system" 1>&2
+fi
+
+ssh_bins="`which -a ssh`"
+for s in $ssh_bins; do
+	[ "$s" = "$full_bin" ] && continue
+	ssh_bin=$s; break;
+done
+$DEBUG "ssh_bin=$ssh_bin $SSH_FLAGS";
+
+skip_par=0
+for p in $*; do
+	case $p in
+		-l) skip_par=1; continue;
+			;;
+		*@*) server="${p##*@}" # user@server.com - remove "user@" prefix
+			break
+			;;
+		*) if [ $skip_par -eq 1 ]; then skip_par=0 ; continue; fi;
+			server=$p
+			break
+			;;
+	esac;
+done
+
+$DEBUG "server = $server";
+if [ -f "$HOME/.ssh/keys-by-host/$server" ]; then
+	keyfile="$HOME/.ssh/keys-by-host/$server"
+elif [ -f "$HOME/.ssh/id_rsa" ]; then
+	keyfile="$HOME/.ssh/id_rsa"
+elif [ -f "$HOME/.ssh/id_dsa" ]; then
+	keyfile="$HOME/.ssh/id_dsa"
+fi
+
+if [ -f "$keyfile" ]; then
+	if [ ! -z "$realpath_bin" ] && [ -x "$realpath_bin" ]; then
+		keyfile="`realpath $keyfile`"
+	fi
+
+	# execute keychain and then ssh binary
+	eval `"$keychain_bin" --quiet --eval $keyfile`
+	exec "$ssh_bin" $SSH_FLAGS $*
+else 
+	exec "$ssh_bin" $SSH_FLAGS $*
+fi
+
