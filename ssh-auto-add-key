@@ -77,6 +77,10 @@ done
 $DEBUG "server = $server";
 if [ -f "$HOME/.ssh/keys-by-host/$server" ]; then
 	keyfile="$HOME/.ssh/keys-by-host/$server"
+elif [ -f "$HOME/.ssh/id_ed25519" ]; then
+	keyfile="$HOME/.ssh/id_ed25519"
+elif [ -f "$HOME/.ssh/id_ecdsa" ]; then
+	keyfile="$HOME/.ssh/id_ecdsa"
 elif [ -f "$HOME/.ssh/id_rsa" ]; then
 	keyfile="$HOME/.ssh/id_rsa"
 elif [ -f "$HOME/.ssh/id_dsa" ]; then
